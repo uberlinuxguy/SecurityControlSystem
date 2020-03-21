@@ -338,6 +338,7 @@ namespace IngameScript
                 Reset();
 
                 // initialize the statemachine
+                keypadStateMachine = new StateMachine();
                 keypadStateMachine.overrideState("idle");
 
                 // Set up the transititions, default to idle
@@ -415,6 +416,7 @@ namespace IngameScript
                 {
                     doorHandler.Update();
                 }
+                keypadStateMachine.Update();
 
             }
 

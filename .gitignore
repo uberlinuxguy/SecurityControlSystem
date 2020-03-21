@@ -1,0 +1,8 @@
+# ignore everything...
+*
+
+# except this stuff
+!.gitignore
+!Program.cs
+!README.md
+!LICENSE

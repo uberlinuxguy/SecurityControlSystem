@@ -102,8 +102,110 @@ namespace IngameScript
         */
 
         const int MaxTries = 3; // Maximum number of tries before the keypad locks.
-         
 
+        public class LCDHandler
+        {
+            public IMyTextPanel LCD;
+            private IMyGridTerminalSystem gts;
+
+            private float PasswordFontSize = 6; // This is the font size of the hidden characters for password
+            private char PasswordCharacter = '*'; //This is the character that substitutes the digits.
+            private Color PasswordFontColor = new Color(255,255,255); // Font Color of the Password Screen
+            private Color PasswordBackColor = new Color(0, 0, 150); // Background Color of the Password Screen
+
+            private float ReadyFontSize = 4; // This is the font size of the Ready Message
+            private string ReadyMessage = "    Ready"; // This is the message displayed when the Keypad is ready.
+            private Color ReadyFontColor = new Color(255,255,255); // Font Color of the Ready Message
+            private Color ReadyBackColor = new Color(0, 0, 150); // Background Color of the Ready Message
+
+            private float SuccessFontSize = 2; // This is the font size of the Success Message
+            private Color SuccessFontColor = new Color(0, 0, 0); // Font Color of Success Messages
+            private Color SuccessBackColor = new Color(0, 150, 0); // Background Color of Success Messages
+
+            private float FailureFontSize = 4; // This is the font size of the Failure Message
+            private string FailureMessage = "   Failed"; //This is the message displayed when the user typed wrong.
+            private Color FailureFontColor = new Color(255,255,255); // Font Color of the Failure Message
+            private Color FailureBackColor = new Color(150, 0, 0); // Background Color of the Failure Message
+
+            private float LockedFontSize = 5; // This is the font size of the Locked Message
+            private string LockedMessage = " LOCKED!"; //This is the message displayed when the keypad is locked.
+            private Color LockedFontColor = new Color(255,255,255); // Font Color of the Locked Message
+            private Color LockedBackColor = new Color(150, 0, 0); // Background color of the Locked Message
+
+            public LCDHandler(string LCDName, IMyGridTerminalSystem gts, Program myProgram)
+            {
+                this.gts = gts;
+                if (LCDName != null && LCDName.ToLower() != "null")
+                {
+                    // get reference to the LCD
+                    myProgram.Echo("Looking for LCD: " + LCDName);
+                    LCD = (IMyTextPanel)gts.GetBlockWithName(LCDName);
+                    if (LCD != null)
+                    {
+                        myProgram.Echo("Found");
+                        LCD.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
+                    }
+                    else
+                    {
+                        myProgram.Echo("Not Found");
+                    }
+
+                }
+            }
+
+            public void Password(string argument)
+            {
+                if (LCD != null)
+                {
+                    LCD.SetValueFloat("FontSize", PasswordFontSize);
+                    LCD.SetValueColor("FontColor", PasswordFontColor);
+                    LCD.SetValueColor("BackgroundColor", PasswordBackColor);
+                    LCD.WriteText(new String(PasswordCharacter, argument.Length), false);
+                }
+            }
+
+
+            public void Ready()
+            {
+                if (LCD != null)
+                {
+                    LCD.SetValueFloat("FontSize", ReadyFontSize);
+                    LCD.SetValueColor("FontColor", ReadyFontColor);
+                    LCD.SetValueColor("BackgroundColor", ReadyBackColor);
+                    LCD.WriteText(ReadyMessage, false);
+                }
+            }
+            public void Success(string Name)
+            {
+                if (LCD != null)
+                {
+                    LCD.SetValueFloat("FontSize", SuccessFontSize);
+                    LCD.SetValueColor("FontColor", SuccessFontColor);
+                    LCD.SetValueColor("BackgroundColor", SuccessBackColor);
+                    LCD.WriteText(Name, false);
+                }
+            }
+            public void Failure()
+            {
+                if (LCD != null)
+                {
+                    LCD.SetValueFloat("FontSize", FailureFontSize);
+                    LCD.SetValueColor("FontColor", FailureFontColor);
+                    LCD.SetValueColor("BackgroundColor", FailureBackColor);
+                    LCD.WriteText(FailureMessage, false);
+                }
+            }
+            public void Locked()
+            {
+                if (LCD != null)
+                {
+                    LCD.SetValueFloat("FontSize", LockedFontSize);
+                    LCD.SetValueColor("FontColor", LockedFontColor);
+                    LCD.SetValueColor("BackgroundColor", LockedBackColor);
+                    LCD.WriteText(LockedMessage, false);
+                }
+            }
+        }
 
         Dictionary<string, Keypad> keypads = new Dictionary<string, Keypad>();
         //bool Locked = false;
@@ -225,6 +327,8 @@ namespace IngameScript
 
             private bool Locked;
 
+            private StateMachine keypadStateMachine;
+
 
             public Keypad(string keypadName)
             {
@@ -232,6 +336,27 @@ namespace IngameScript
                 Locked = false;
                 passcodes = new Dictionary<string, string>();
                 Reset();
+
+                // initialize the statemachine
+                keypadStateMachine.overrideState("idle");
+
+                // Set up the transititions, default to idle
+                keypadStateMachine.transitions.Add("timer_wait", () => {
+                    return (keypadStateMachine.timerActive()) ? "timer_wait" : "clear";
+                });
+
+                keypadStateMachine.actions.Add("failed", () => {
+                    keypadStateMachine.startTimer(3);
+                    keypadStateMachine.overrideState("timer_wait");
+                });
+                keypadStateMachine.actions.Add("passed", () => {
+                    keypadStateMachine.startTimer(3);
+                    keypadStateMachine.overrideState("timer_wait");
+                });
+                keypadStateMachine.actions.Add("clear", () => {
+                    this.Clear();
+                    keypadStateMachine.overrideState("idle");
+                });
 
 
             }
@@ -338,6 +463,7 @@ namespace IngameScript
                                     CurrentTries = 0;
                                     Locked = true;
                                     doorHandler.openDoor();
+                                    keypadStateMachine.overrideState("passed");
 
                                 }
                                 else
@@ -348,6 +474,7 @@ namespace IngameScript
                                     {
                                         if (lcdHandler != null)
                                             lcdHandler.Failure();
+                                        keypadStateMachine.overrideState("failed");
                                     }
                                     else
                                     {
@@ -634,109 +761,7 @@ namespace IngameScript
             }
         }
 
-        public class LCDHandler
-        {
-            public IMyTextPanel LCD;
-            private IMyGridTerminalSystem gts;
-
-            private float PasswordFontSize = 6; // This is the font size of the hidden characters for password
-            private char PasswordCharacter = '*'; //This is the character that substitutes the digits.
-            private Color PasswordFontColor = new Color(0, 0, 0); // Font Color of the Password Screen
-            private Color PasswordBackColor = new Color(0, 0, 150); // Background Color of the Password Screen
-
-            private float ReadyFontSize = 4; // This is the font size of the Ready Message
-            private string ReadyMessage = "    Ready"; // This is the message displayed when the Keypad is ready.
-            private Color ReadyFontColor = new Color(0, 0, 0); // Font Color of the Ready Message
-            private Color ReadyBackColor = new Color(0, 0, 150); // Background Color of the Ready Message
-
-            private float SuccessFontSize = 4; // This is the font size of the Success Message
-            private Color SuccessFontColor = new Color(0, 0, 0); // Font Color of Success Messages
-            private Color SuccessBackColor = new Color(0, 150, 0); // Background Color of Success Messages
-
-            private float FailureFontSize = 4; // This is the font size of the Failure Message
-            private string FailureMessage = "   Failed"; //This is the message displayed when the user typed wrong.
-            private Color FailureFontColor = new Color(0, 0, 0); // Font Color of the Failure Message
-            private Color FailureBackColor = new Color(150, 0, 0); // Background Color of the Failure Message
-
-            private float LockedFontSize = 5; // This is the font size of the Locked Message
-            private string LockedMessage = " Locked"; //This is the message displayed when the keypad is locked.
-            private Color LockedFontColor = new Color(0, 0, 0); // Font Color of the Locked Message
-            private Color LockedBackColor = new Color(150, 0, 0); // Background color of the Locked Message
-
-            public LCDHandler(string LCDName, IMyGridTerminalSystem gts, Program myProgram)
-            {
-                this.gts = gts;
-                if (LCDName != null && LCDName.ToLower() != "null")
-                {
-                    // get reference to the LCD
-                    myProgram.Echo("Looking for LCD: " + LCDName);
-                    LCD = (IMyTextPanel)gts.GetBlockWithName(LCDName);
-                    if (LCD != null)
-                    {
-                        myProgram.Echo("Found");
-                        LCD.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
-                    }
-                    else
-                    {
-                        myProgram.Echo("Not Found");
-                    }
-
-                }
-            }
-
-            public void Password(string argument)
-            {
-                if (LCD != null)
-                {
-                    LCD.SetValueFloat("FontSize", PasswordFontSize);
-                    LCD.SetValueColor("FontColor", PasswordFontColor);
-                    LCD.SetValueColor("BackgroundColor", PasswordBackColor);
-                    LCD.WriteText(new String(PasswordCharacter, argument.Length), false);
-                }
-            }
-
-
-            public void Ready()
-            {
-                if (LCD != null)
-                {
-                    LCD.SetValueFloat("FontSize", ReadyFontSize);
-                    LCD.SetValueColor("FontColor", ReadyFontColor);
-                    LCD.SetValueColor("BackgroundColor", ReadyBackColor);
-                    LCD.WriteText(ReadyMessage, false);
-                }
-            }
-            public void Success(string Name)
-            {
-                if (LCD != null)
-                {
-                    LCD.SetValueFloat("FontSize", SuccessFontSize);
-                    LCD.SetValueColor("FontColor", SuccessFontColor);
-                    LCD.SetValueColor("BackgroundColor", SuccessBackColor);
-                    LCD.WriteText(Name, false);
-                }
-            }
-            public void Failure()
-            {
-                if (LCD != null)
-                {
-                    LCD.SetValueFloat("FontSize", FailureFontSize);
-                    LCD.SetValueColor("FontColor", FailureFontColor);
-                    LCD.SetValueColor("BackgroundColor", FailureBackColor);
-                    LCD.WriteText(FailureMessage, false);
-                }
-            }
-            public void Locked()
-            {
-                if (LCD != null)
-                {
-                    LCD.SetValueFloat("FontSize", LockedFontSize);
-                    LCD.SetValueColor("FontColor", LockedFontColor);
-                    LCD.SetValueColor("BackgroundColor", LockedBackColor);
-                    LCD.WriteText(LockedMessage, false);
-                }
-            }
-        }
+        
     }
 }
  

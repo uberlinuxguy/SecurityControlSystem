@@ -589,7 +589,7 @@ namespace IngameScript
 
             List<IMyTerminalBlock> keypadsSearch = new List<IMyTerminalBlock>();
             gts.SearchBlocksOfName("[keypad]", keypadsSearch);
-
+            Echo("Before scan, keypads is: " + keypads.Count.ToString());
             if (keypadsSearch.Count > 0)
             {
                 for (int i = 0; i < keypadsSearch.Count; i++)
@@ -650,6 +650,7 @@ namespace IngameScript
                                                     }
                                                     if (tmpKeypad != null)
                                                     {
+                                                        Echo("Added Passcode: " + passElements[0] + " to keypad " + tmpKeypad.Name);
                                                         tmpKeypad.passcodes.Add(passElements[0], passElements[1]);
                                                     }
                                                 }
@@ -707,10 +708,11 @@ namespace IngameScript
                             }
 
                         }
-                    }
+                    } // end contians if
                 }
             }
 
+            Echo("After Scan keypads is: " + keypads.Count.ToString());
         }
 
         public void Main(string argument)

@@ -343,22 +343,34 @@ namespace IngameScript
 
                 // Set up the transititions, default to idle
                 keypadStateMachine.transitions.Add("timer_wait", () => {
-                    return (keypadStateMachine.timerActive()) ? "timer_wait" : "clear";
+                    return (keypadStateMachine.timerActive()) ? "timer_wait" : "idle";
                 });
 
                 keypadStateMachine.actions.Add("failed", () => {
+                    password = "";
                     keypadStateMachine.startTimer(3);
                     keypadStateMachine.overrideState("timer_wait");
                 });
                 keypadStateMachine.actions.Add("passed", () => {
+                    password = "";
                     keypadStateMachine.startTimer(3);
                     keypadStateMachine.overrideState("timer_wait");
                 });
                 keypadStateMachine.actions.Add("clear", () => {
-                    this.Clear();
+                    password = "";
                     keypadStateMachine.overrideState("idle");
                 });
 
+                keypadStateMachine.actions.Add("idle", () =>
+                {
+                    if ((CurrentTries < MaxTries) && doorHandler.getState() == "locked")
+                    {
+                        if(password == "")
+                            Clear();
+                        // the door has closed, unlock the keypad if it's not locked from tries.
+                        Locked = false;
+                    }
+                });
 
             }
 

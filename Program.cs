@@ -110,12 +110,12 @@ namespace IngameScript
 
             private float PasswordFontSize = 6; // This is the font size of the hidden characters for password
             private char PasswordCharacter = '*'; //This is the character that substitutes the digits.
-            private Color PasswordFontColor = new Color(255,255,255); // Font Color of the Password Screen
+            private Color PasswordFontColor = new Color(255, 255, 255); // Font Color of the Password Screen
             private Color PasswordBackColor = new Color(0, 0, 150); // Background Color of the Password Screen
 
             private float ReadyFontSize = 4; // This is the font size of the Ready Message
             private string ReadyMessage = "    Ready"; // This is the message displayed when the Keypad is ready.
-            private Color ReadyFontColor = new Color(255,255,255); // Font Color of the Ready Message
+            private Color ReadyFontColor = new Color(255, 255, 255); // Font Color of the Ready Message
             private Color ReadyBackColor = new Color(0, 0, 150); // Background Color of the Ready Message
 
             private float SuccessFontSize = 2; // This is the font size of the Success Message
@@ -124,12 +124,12 @@ namespace IngameScript
 
             private float FailureFontSize = 4; // This is the font size of the Failure Message
             private string FailureMessage = "   Failed"; //This is the message displayed when the user typed wrong.
-            private Color FailureFontColor = new Color(255,255,255); // Font Color of the Failure Message
+            private Color FailureFontColor = new Color(255, 255, 255); // Font Color of the Failure Message
             private Color FailureBackColor = new Color(150, 0, 0); // Background Color of the Failure Message
 
             private float LockedFontSize = 5; // This is the font size of the Locked Message
             private string LockedMessage = " LOCKED!"; //This is the message displayed when the keypad is locked.
-            private Color LockedFontColor = new Color(255,255,255); // Font Color of the Locked Message
+            private Color LockedFontColor = new Color(255, 255, 255); // Font Color of the Locked Message
             private Color LockedBackColor = new Color(150, 0, 0); // Background color of the Locked Message
 
             public LCDHandler(string LCDName, IMyGridTerminalSystem gts, Program myProgram)
@@ -248,7 +248,7 @@ namespace IngameScript
                 });
                 doorStateMachine.transitions.Add("opening", () => {
                     if (doorObj == null)
-                        return "locked"; 
+                        return "locked";
                     return (doorObj.Status == DoorStatus.Open) ? "open_wait" : "opening";
                 });
                 doorStateMachine.transitions.Add("timer_wait", () => {
@@ -453,6 +453,9 @@ namespace IngameScript
                         case "CMD_CLEAR":
                             Clear();
                             break;
+                        case "CMD_OVERRIDE":
+                            doorHandler.openDoor();
+                            break;
                         case "CMD_OK":
                             if (CurrentTries < MaxTries)
                             {
@@ -650,8 +653,15 @@ namespace IngameScript
                                                     }
                                                     if (tmpKeypad != null)
                                                     {
-                                                        Echo("Added Passcode: " + passElements[0] + " to keypad " + tmpKeypad.Name);
-                                                        tmpKeypad.passcodes.Add(passElements[0], passElements[1]);
+                                                        //Echo("Added Passcode: " + passElements[0] + " to keypad " + tmpKeypad.Name);
+                                                        /*int index = passElements[1].IndexOf("\\n");
+                                                        if(index > -1)
+                                                        {
+                                                            string tmpString = "";
+                                                            tmpString = passElements[1].Substring(0, index) + " \n";
+                                                            tmpString = tmpString + passElements[1].Substring(index + 3);
+                                                        }*/
+                                                        tmpKeypad.passcodes.Add(passElements[0], passElements[1].Replace("\\n", "\n"));
                                                     }
                                                 }
                                                 break;
@@ -764,8 +774,6 @@ namespace IngameScript
 
             }
         }
-
-        
     }
 }
  

@@ -624,6 +624,10 @@ namespace IngameScript
                             for (int j = 0; j < dataLines.Count; j++)
                             {
                                 //var passcodeIn = "";
+                                if (dataLines[j].Length < 1)
+                                    continue;
+                                if (dataLines[j][0] == '\n' || dataLines[j][0] == '#')
+                                    continue;
                                 List<string> lineElements = dataLines[j].Split('=').ToList();
                                 if (lineElements.Count != 2)
                                 {
